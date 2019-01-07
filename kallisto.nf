@@ -38,7 +38,6 @@ params.output        = "results/"
 
 log.info "K A L L I S T O - N F  ~  version 0.9"
 log.info "====================================="
-log.info "Accession number       : ${params.project}"
 log.info "transcriptome          : ${params.transcriptome}"
 log.info "fragment length        : ${params.fragment_len} nt"
 log.info "fragment SD            : ${params.fragment_sd} nt"
@@ -61,13 +60,15 @@ if( !transcriptome_file.exists() ) exit 1, "Missing transcriptome file: ${transc
 
 int threads = Runtime.getRuntime().availableProcessors()
 
-Channel.fromPath(params.accession).set { sraIDs }
+Channel.fromPath(params.accession)
     .ifEmpty { exit 1, "Text file containing SRA id's not found: ${params.accession}" }
+    .set { sraIDs }
 
 sraIDs.splitText().map { it -> it.trim() }.set { singleSRAId }
 
 process fastqDump {
 
+    tag "$id"
     publishDir params.output, mode: 'copy'
 
     cpus threads
