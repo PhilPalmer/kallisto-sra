@@ -26,13 +26,13 @@
  */
 
 
-params.transcriptome = "$baseDir/tutorial/transcriptome/transcriptome.fa"
+params.transcriptome = false
 params.name          = "RNA-Seq Abundance Analysis"
-params.accession     = "PRJNA162905"
+params.accession     = false
 params.fragment_len  = '180'
 params.fragment_sd   = '20'
 params.bootstrap     = '100'
-params.experiment    = "$baseDir/tutorial/experiment/hiseq_info.txt"
+params.experiment    = false
 params.output        = "results/"
 
 
@@ -43,7 +43,6 @@ log.info "transcriptome          : ${params.transcriptome}"
 log.info "fragment length        : ${params.fragment_len} nt"
 log.info "fragment SD            : ${params.fragment_sd} nt"
 log.info "bootstraps             : ${params.bootstrap}"
-log.info "experimental design    : ${params.experiment}"
 log.info "output                 : ${params.output}"
 log.info "\n"
 
@@ -53,7 +52,6 @@ log.info "\n"
  */
 
 transcriptome_file     = file(params.transcriptome)
-exp_file               = file(params.experiment) 
 accessionID            = params.accession
 
 /*
@@ -61,25 +59,10 @@ accessionID            = params.accession
  */
 if( !transcriptome_file.exists() ) exit 1, "Missing transcriptome file: ${transcriptome_file}"
 
-if( !exp_file.exists() ) exit 1, "Missing experimental design file: ${exp_file}"
-
 int threads = Runtime.getRuntime().availableProcessors()
 
-process getSRAIDs {
-    
-    cpus 1
-
-    input:
-    val id from accessionID
-    
-    output:
-    file 'sra.txt' into sraIDs
-    
-    script:
-    """
-    esearch -db sra -query $id  | efetch --format runinfo | grep SRR | cut -d ',' -f 1 > sra.txt
-    """
-}
+Channel.fromPath(params.accession).set { sraIDs }
+    .ifEmpty { exit 1, "Text file containing SRA id's not found: ${params.accession}" }
 
 sraIDs.splitText().map { it -> it.trim() }.set { singleSRAId }
 
